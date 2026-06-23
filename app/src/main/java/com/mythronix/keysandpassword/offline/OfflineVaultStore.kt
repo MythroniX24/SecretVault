@@ -56,7 +56,9 @@ object OfflineVaultStore {
                         iv = obj.optString("iv", ""),
                         hmac = obj.optString("hmac", ""),
                         aadVersion = obj.optString("aadVersion", VaultItem.AAD_VERSION),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                        category = obj.optString("category", VaultItem.CATEGORY_UNCATEGORIZED),
+                        isFavorite = obj.optBoolean("isFavorite", false)
                     )
                 }
                 .sortedByDescending { it.createdAt }
@@ -131,6 +133,8 @@ object OfflineVaultStore {
                 obj.put("hmac", item.hmac)
                 obj.put("aadVersion", item.aadVersion)
                 obj.put("createdAt", item.createdAt)
+                obj.put("category", item.category)
+                obj.put("isFavorite", item.isFavorite)
                 arr.put(obj)
             }
             arr.toString(2)
@@ -161,6 +165,8 @@ object OfflineVaultStore {
             obj.put("hmac", item.hmac)
             obj.put("aadVersion", item.aadVersion)
             obj.put("createdAt", item.createdAt)
+            obj.put("category", item.category)
+            obj.put("isFavorite", item.isFavorite)
             out.put(obj)
         }
         f.parentFile?.mkdirs()

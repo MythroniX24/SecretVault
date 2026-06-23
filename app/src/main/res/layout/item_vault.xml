@@ -11,18 +11,20 @@
     app:strokeWidth="1dp"
     app:strokeColor="?attr/colorOutline"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="14dp"
+        android:paddingVertical="12dp"
         android:gravity="center_vertical">
 
         <!-- Colored icon bubble -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardIconBg"
             android:layout_width="48dp"
             android:layout_height="48dp"
             app:cardCornerRadius="14dp"
@@ -33,11 +35,10 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:tint="?attr/colorOnPrimaryContainer"
-                android:src="@drawable/ic_lock"/>
+                android:tint="?attr/colorOnPrimaryContainer"/>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Name + type -->
+        <!-- Name + type + category -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -54,28 +55,56 @@
                 android:textColor="?attr/colorOnSurface"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:text="Account Name"/>
+                android:ellipsize="end"/>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipType"
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="28dp"
-                android:text="Password"
-                android:checkable="false"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
                 android:layout_marginTop="4dp"
-                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                app:chipMinHeight="24dp"
-                app:chipBackgroundColor="?attr/colorSurfaceVariant"/>
+                android:gravity="center_vertical">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="24dp"
+                    android:textSize="11sp"
+                    android:checkable="false"
+                    app:chipMinHeight="22dp"
+                    app:chipBackgroundColor="?attr/colorSurfaceVariant"/>
+
+                <TextView
+                    android:id="@+id/tvCategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:layout_marginStart="6dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"/>
+
+            </LinearLayout>
 
         </LinearLayout>
+
+        <!-- Favorite star -->
+        <ImageView
+            android:id="@+id/ivFavorite"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_star"
+            android:alpha="0.25"
+            android:clickable="true"
+            android:focusable="true"
+            android:tint="?attr/colorOnSurfaceVariant"/>
 
         <!-- Chevron -->
         <ImageView
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_chevron_right"
-            android:tint="?attr/colorOnSurfaceVariant"/>
+            android:tint="?attr/colorOnSurfaceVariant"
+            android:layout_marginStart="4dp"/>
 
     </LinearLayout>
 

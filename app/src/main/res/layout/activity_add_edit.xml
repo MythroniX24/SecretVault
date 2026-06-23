@@ -30,6 +30,21 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Category -->
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp"
+                app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="CATEGORY" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:textColor="?attr/colorPrimary" android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
+                    <Spinner android:id="@+id/spinnerCategory" android:layout_width="match_parent"
+                        android:layout_height="48dp" android:background="@drawable/bg_spinner"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Fields -->
             <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginBottom="14dp"
@@ -65,13 +80,26 @@
                     <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilPassword"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:hint="Password" android:layout_marginBottom="12dp"
+                        android:hint="Password" android:layout_marginBottom="8dp"
                         app:startIconDrawable="@drawable/ic_lock" app:endIconMode="password_toggle">
                         <com.google.android.material.textfield.TextInputEditText android:id="@+id/etPassword"
                             android:importantForAutofill="no"
                             android:layout_width="match_parent" android:layout_height="wrap_content"
                             android:inputType="textPassword" android:imeOptions="actionNext"/>
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Password Generator Button -->
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnGeneratePassword"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Generate Strong Password"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="12dp"
+                        app:cornerRadius="10dp"
+                        app:icon="@drawable/ic_shuffle"
+                        app:iconGravity="start"
+                        app:iconPadding="6dp"/>
 
                     <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilToken"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -88,11 +116,37 @@
                     <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilNotes"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:hint="Notes (optional)" app:startIconDrawable="@drawable/ic_notes">
+                        android:hint="Notes (encrypted)" app:startIconDrawable="@drawable/ic_notes">
                         <com.google.android.material.textfield.TextInputEditText android:id="@+id/etNotes"
                             android:layout_width="match_parent" android:layout_height="wrap_content"
                             android:inputType="textMultiLine" android:minLines="2" android:maxLines="4"/>
                     </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Favorite Toggle -->
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp"
+                app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_star" android:tint="?attr/colorOnSurfaceVariant"
+                        android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Mark as Favorite"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Pinned to the top of your vault"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"/>
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchFavorite"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -103,7 +157,7 @@
                 <ImageView android:layout_width="14dp" android:layout_height="14dp"
                     android:src="@drawable/ic_lock" android:tint="?attr/colorPrimary"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="  Encrypted with AES-256-GCM + HMAC-SHA256 on device"
+                    android:text="  Encrypted with AES-256-GCM on device"
                     android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
                     android:textColor="?attr/colorOnSurfaceVariant"/>
             </LinearLayout>

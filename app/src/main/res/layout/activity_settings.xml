@@ -237,6 +237,118 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ── APPEARANCE ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="APPEARANCE" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+                    <com.google.android.material.card.MaterialCardView android:layout_width="44dp"
+                        android:layout_height="44dp" app:cardCornerRadius="22dp"
+                        app:cardBackgroundColor="?attr/colorPrimaryContainer" app:cardElevation="0dp">
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+                            android:layout_gravity="center" android:src="@drawable/ic_dark_mode"
+                            android:tint="?attr/colorOnPrimaryContainer"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="14dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Dark Mode" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Follow system / Always light / Always dark"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"/>
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchDarkMode"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── LOCKOUT SETTINGS ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="LOCKOUT PROTECTION" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Wrong Attempts Before Lock"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderMaxAttempts"
+                            android:layout_width="120dp" android:layout_height="wrap_content"
+                            android:valueFrom="3" android:valueTo="10" android:stepSize="1"
+                            android:value="5"/>
+                    </LinearLayout>
+
+                    <TextView android:id="@+id/tvMaxAttemptsValue" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="5 attempts"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:textColor="?attr/colorPrimary" android:layout_marginStart="4dp"/>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="?attr/colorOutline" android:alpha="0.2"
+                        android:layout_marginVertical="12dp"/>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Lock Duration"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <com.google.android.material.slider.Slider android:id="@+id/sliderLockDuration"
+                            android:layout_width="120dp" android:layout_height="wrap_content"
+                            android:valueFrom="0" android:valueTo="4" android:stepSize="1"
+                            android:value="4"/>
+                    </LinearLayout>
+
+                    <TextView android:id="@+id/tvLockDurationValue" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="24 hours"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:textColor="?attr/colorPrimary" android:layout_marginStart="4dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── CLIPBOARD ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="CLIPBOARD" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_security" android:tint="?attr/colorPrimary"
+                        android:layout_marginEnd="12dp"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Auto-Clear Clipboard"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear copied passwords after 30 seconds"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant"/>
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchClipboardClear"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ── ENCRYPTION INFO ── -->
             <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginBottom="20dp"

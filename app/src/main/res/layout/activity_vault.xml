@@ -53,6 +53,17 @@
                 android:imeOptions="actionSearch"/>
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Category filter chips -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupCategories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="4dp"
+            app:singleSelection="true"
+            app:chipSpacing="6dp"
+            android:visibility="gone"/>
+
         <!-- Count chip -->
         <com.google.android.material.chip.Chip
             android:id="@+id/chipCount"

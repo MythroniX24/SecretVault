@@ -14,6 +14,8 @@ import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.mythronix.keysandpassword.R
@@ -34,6 +36,8 @@ class VaultActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVaultBinding
     private lateinit var adapter: VaultAdapter
     private var allItems: List<VaultItem> = emptyList()
+    private var selectedCategory: String? = null  // null = All
+    private var clipboardHandler: Handler? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +49,7 @@ class VaultActivity : AppCompatActivity() {
         setupRecyclerView()
         binding.fab.setOnClickListener { startActivity(Intent(this, AddEditActivity::class.java)) }
         setupSearch()
+        setupCategoryChips()
         loadVaultItems()
     }
 
@@ -54,8 +59,17 @@ class VaultActivity : AppCompatActivity() {
         loadVaultItems()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        clipboardHandler?.removeCallbacksAndMessages(null)
+    }
+
     private fun setupRecyclerView() {
-        adapter = VaultAdapter(onItemClick = { showItemDetail(it) }, onItemLongClick = { showDeleteDialog(it) })
+        adapter = VaultAdapter(
+            onItemClick = { showItemDetail(it) },
+            onItemLongClick = { showDeleteDialog(it) },
+            onFavoriteClick = { toggleFavorite(it) }
+        )
         binding.rvVault.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         binding.rvVault.adapter = adapter
     }
@@ -68,10 +82,49 @@ class VaultActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupCategoryChips() {
+        binding.chipGroupCategories.removeAllViews()
+        // "All" chip
+        val allChip = Chip(this).apply {
+            text = "All"
+            isCheckable = true
+            isChecked = true
+            setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) { selectedCategory = null; filterItems(binding.etSearch.text.toString()) }
+            }
+        }
+        binding.chipGroupCategories.addView(allChip)
+
+        // Category chips
+        for (cat in VaultItem.ALL_CATEGORIES) {
+            val chip = Chip(this).apply {
+                text = cat
+                isCheckable = true
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) { selectedCategory = cat; filterItems(binding.etSearch.text.toString()) }
+                }
+            }
+            binding.chipGroupCategories.addView(chip)
+        }
+
+        // Single selection behavior
+        binding.chipGroupCategories.isSingleSelection = true
+    }
+
     private fun filterItems(query: String) {
-        val filtered = if (query.isBlank()) allItems
-        else allItems.filter { it.name.contains(query, ignoreCase = true) }
-        adapter.submitList(filtered)
+        var filtered = allItems
+
+        // Apply category filter
+        if (selectedCategory != null) {
+            filtered = filtered.filter { it.category == selectedCategory }
+        }
+
+        // Apply search filter
+        if (query.isNotBlank()) {
+            filtered = filtered.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
+        adapter.submitFullList(filtered)
         updateEmptyState(filtered.isEmpty())
     }
 
@@ -86,8 +139,8 @@ class VaultActivity : AppCompatActivity() {
                 allItems = withContext(Dispatchers.IO) {
                     OfflineVaultStore.listItems(this@VaultActivity, userId)
                 }
-                adapter.submitList(allItems)
-                updateEmptyState(allItems.isEmpty())
+                filterItems(binding.etSearch.text.toString())
+                if (allItems.isNotEmpty()) binding.chipGroupCategories.visibility = View.VISIBLE
                 binding.chipCount.visibility = if (allItems.isNotEmpty()) View.VISIBLE else View.GONE
                 binding.chipCount.text = "${allItems.size} item${if (allItems.size != 1) "s" else ""}"
             } catch (e: Exception) {
@@ -101,6 +154,23 @@ class VaultActivity : AppCompatActivity() {
     private fun updateEmptyState(empty: Boolean) {
         binding.tvEmpty.visibility = if (empty) View.VISIBLE else View.GONE
         binding.rvVault.visibility = if (empty) View.GONE else View.VISIBLE
+        binding.chipGroupCategories.visibility = if (empty) View.GONE else View.VISIBLE
+    }
+
+    // ── Favorite Toggle ───────────────────────────────────────────────────────
+
+    private fun toggleFavorite(item: VaultItem) {
+        lifecycleScope.launch {
+            try {
+                val userId = VaultSession.getUserId() ?: return@launch
+                val updated = item.copy(isFavorite = !item.isFavorite)
+                withContext(Dispatchers.IO) {
+                    OfflineVaultStore.saveItem(this@VaultActivity, userId, updated)
+                }
+                loadVaultItems()
+                showSnack(if (updated.isFavorite) "⭐ Pinned to top" else "Unpinned")
+            } catch (_: Exception) { showSnack("Failed to update") }
+        }
     }
 
     // ── Decrypt & show ────────────────────────────────────────────────────────
@@ -165,9 +235,19 @@ class VaultActivity : AppCompatActivity() {
         val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cb.setPrimaryClip(ClipData.newPlainText("Secure Vault", text))
         showSnack("$label copied — clears in 30s")
-        Handler(Looper.getMainLooper()).postDelayed({
-            runCatching { cb.setPrimaryClip(ClipData.newPlainText("", "")) }
-        }, 30_000L)
+
+        // Cancel previous clear timer
+        clipboardHandler?.removeCallbacksAndMessages(null)
+        clipboardHandler = Handler(Looper.getMainLooper())
+
+        val clipboardClearEnabled = getSharedPreferences("sv_settings", MODE_PRIVATE)
+            .getBoolean("clipboard_auto_clear", true)
+
+        if (clipboardClearEnabled) {
+            clipboardHandler?.postDelayed({
+                runCatching { cb.setPrimaryClip(ClipData.newPlainText("", "")) }
+            }, 30_000L)
+        }
     }
 
     private fun showDeleteDialog(item: VaultItem) {

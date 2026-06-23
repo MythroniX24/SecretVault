@@ -9,6 +9,8 @@ import android.view.View
 import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -17,6 +19,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.mythronix.keysandpassword.VaultSession
 import com.mythronix.keysandpassword.crypto.CryptoManager
 import com.mythronix.keysandpassword.crypto.KeystoreHelper
+import com.mythronix.keysandpassword.crypto.LockoutManager
 import com.mythronix.keysandpassword.crypto.PinManager
 import com.mythronix.keysandpassword.databinding.ActivitySettingsBinding
 import com.mythronix.keysandpassword.models.VaultItem
@@ -33,7 +36,6 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
 
-    // Saved password arrays — zeroed out after use and in onDestroy()
     private var pendingExportPassword: CharArray? = null
     private var pendingImportPassword: CharArray? = null
     private var pendingImportUri: Uri? = null
@@ -43,18 +45,13 @@ class SettingsActivity : AppCompatActivity() {
     private val exportFileLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { uri ->
-        if (uri != null) {
-            lifecycleScope.launch { doExport(uri) }
-        }
+        if (uri != null) lifecycleScope.launch { doExport(uri) }
     }
 
     private val importFileLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null) {
-            pendingImportUri = uri
-            showImportPasswordDialog()
-        }
+        if (uri != null) { pendingImportUri = uri; showImportPasswordDialog() }
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -72,6 +69,7 @@ class SettingsActivity : AppCompatActivity() {
 
         refreshUI()
         setupClicks()
+        setupLockoutSliders()
     }
 
     override fun onResume() {
@@ -82,7 +80,6 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Zero out any saved password arrays
         pendingExportPassword?.fill('\u0000')
         pendingImportPassword?.fill('\u0000')
         pendingExportPassword = null
@@ -97,7 +94,21 @@ class SettingsActivity : AppCompatActivity() {
         binding.tvUserId.text         = "ID: ${userId.take(14)}…"
         binding.switchAppPin.isChecked    = PinManager.isPinEnabled(this)
         binding.switchDuressPin.isChecked = PinManager.isDuressPinEnabled(this)
-        binding.tvAppVersion.text = "Secure Vault v1.0.0  •  Argon2id  •  AES-256-GCM"
+        binding.tvAppVersion.text = "Secure Vault v2.0.0  •  Argon2id  •  AES-256-GCM"
+
+        // Dark mode
+        val prefs = getSharedPreferences("sv_settings", MODE_PRIVATE)
+        val darkMode = prefs.getBoolean("dark_mode", false)
+        binding.switchDarkMode.isChecked = darkMode
+
+        // Clipboard clear
+        binding.switchClipboardClear.isChecked = prefs.getBoolean("clipboard_auto_clear", true)
+
+        // Lockout sliders
+        binding.sliderMaxAttempts.value = LockoutManager.getMaxAttempts(this).toFloat()
+        binding.tvMaxAttemptsValue.text = "${LockoutManager.getMaxAttempts(this)} attempts"
+        binding.sliderLockDuration.value = LockoutManager.getDurationIndex(this).toFloat()
+        binding.tvLockDurationValue.text = LockoutManager.getDurationLabel(LockoutManager.getDurationIndex(this))
 
         // Fingerprint status
         val hasFp = if (userId.isNotEmpty())
@@ -122,9 +133,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnSetupFingerprint.setOnClickListener { showFingerprintOptions() }
         binding.btnChangeMasterPassword.setOnClickListener { showChangeMasterPasswordDialog() }
 
-        // Hide Firebase-dependent buttons
-        binding.btnChangeAccountPassword.visibility = android.view.View.GONE
-        binding.btnViewSessions.visibility = android.view.View.GONE
+        binding.btnChangeAccountPassword.visibility = View.GONE
+        binding.btnViewSessions.visibility = View.GONE
 
         binding.switchAppPin.setOnCheckedChangeListener { _, checked ->
             if (checked) showSetPinDialog(false) else confirmDisablePin(false)
@@ -140,9 +150,40 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnSignOut.setOnClickListener { confirmSignOut() }
         binding.btnExportData.setOnClickListener { showExportDialog() }
         binding.btnImportData.setOnClickListener { showImportDialog() }
+
+        // Dark mode
+        binding.switchDarkMode.setOnCheckedChangeListener { _, checked ->
+            val p = getSharedPreferences("sv_settings", MODE_PRIVATE).edit()
+            p.putBoolean("dark_mode", checked).apply()
+            if (checked) AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            else AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
+
+        // Clipboard
+        binding.switchClipboardClear.setOnCheckedChangeListener { _, checked ->
+            getSharedPreferences("sv_settings", MODE_PRIVATE).edit()
+                .putBoolean("clipboard_auto_clear", checked).apply()
+            snack(if (checked) "Clipboard auto-clear enabled" else "Clipboard auto-clear disabled")
+        }
     }
 
-    // ── Fingerprint ──────────────────────────────────────────────────────────
+    // ── Lockout Sliders ──────────────────────────────────────────────────────
+
+    private fun setupLockoutSliders() {
+        binding.sliderMaxAttempts.addOnChangeListener { _, value, _ ->
+            val attempts = value.toInt()
+            LockoutManager.setMaxAttempts(this, attempts)
+            binding.tvMaxAttemptsValue.text = "$attempts attempts"
+        }
+
+        binding.sliderLockDuration.addOnChangeListener { _, value, _ ->
+            val idx = value.toInt()
+            LockoutManager.setDurationIndex(this, idx)
+            binding.tvLockDurationValue.text = LockoutManager.getDurationLabel(idx)
+        }
+    }
+
+    // ── Fingerprint (unchanged from before) ──────────────────────────────────
 
     private fun showFingerprintOptions() {
         val key    = VaultSession.getKey() ?: run { snack("Vault locked"); return }
@@ -157,8 +198,7 @@ class SettingsActivity : AppCompatActivity() {
             androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
             androidx.biometric.BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
                 MaterialAlertDialogBuilder(this)
-                    .setTitle("Not Available")
-                    .setMessage("This device does not support biometric authentication.")
+                    .setTitle("Not Available").setMessage("This device does not support biometric authentication.")
                     .setPositiveButton("OK", null).show()
             }
             androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
@@ -420,7 +460,7 @@ class SettingsActivity : AppCompatActivity() {
         val pwField = buildPasswordField("Enter master password")
         MaterialAlertDialogBuilder(this)
             .setTitle("Export Data (Backup)")
-            .setMessage("Your vault data will be encrypted and saved as a backup file (.svbk).\n\nYou can restore it on any device with the same master password.")
+            .setMessage("Your vault data will be encrypted and saved as a backup file (.svbk).")
             .setView(pwField.first)
             .setPositiveButton("Export") { _, _ ->
                 val pw = pwField.second.text.toString()
@@ -443,18 +483,14 @@ class SettingsActivity : AppCompatActivity() {
         binding.progressGlobal.visibility = View.VISIBLE
         try {
             val userId = VaultSession.getUserId() ?: throw Exception("Not logged in")
-
-            // Get account salt
             val saltB64 = withContext(Dispatchers.IO) {
                 OfflineAccountManager.getSaltB64(this@SettingsActivity)
             } ?: throw Exception("Account salt not found")
 
-            // Export all items as JSON array
             val itemsJson = withContext(Dispatchers.IO) {
                 OfflineVaultStore.exportItemsAsJson(this@SettingsActivity, userId)
             }
 
-            // Build export payload
             val exportObj = JSONObject()
             exportObj.put("exportVersion", 1)
             exportObj.put("saltB64", saltB64)
@@ -462,22 +498,15 @@ class SettingsActivity : AppCompatActivity() {
             exportObj.put("items", JSONArray(itemsJson))
             val exportJson = exportObj.toString(2)
 
-            // Derive key from password + salt and encrypt the payload
             val salt = CryptoManager.saltFromBase64(saltB64)
             val exportKey = CryptoManager.deriveKey(pw, salt)
             pw.fill('\u0000')
             val (encryptedB64, ivB64) = CryptoManager.encrypt(exportJson, exportKey)
 
-            // File format:
-            //   Line 1: saltB64 (needed for key derivation on import)
-            //   Line 2: ivB64
-            //   Line 3+: encrypted payload (base64, may wrap)
             val fileContent = "$saltB64\n$ivB64\n$encryptedB64"
-
             withContext(Dispatchers.IO) {
-                contentResolver.openOutputStream(uri)?.use { os ->
-                    os.write(fileContent.toByteArray(Charsets.UTF_8))
-                } ?: throw Exception("Cannot write to file")
+                contentResolver.openOutputStream(uri)?.use { it.write(fileContent.toByteArray(Charsets.UTF_8)) }
+                    ?: throw Exception("Cannot write to file")
             }
 
             binding.progressGlobal.visibility = View.GONE
@@ -494,7 +523,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun showImportDialog() {
         MaterialAlertDialogBuilder(this)
             .setTitle("Import Data (Restore)")
-            .setMessage("Select a backup file (.svbk) to restore your vault data.\n\nItems from the backup will be merged with your current vault. Existing items with the same ID will be overwritten.")
+            .setMessage("Select a backup file (.svbk) to restore your vault data. Items with same ID will be overwritten.")
             .setPositiveButton("Select File") { _, _ ->
                 importFileLauncher.launch(arrayOf("*/*"))
             }
@@ -515,54 +544,41 @@ class SettingsActivity : AppCompatActivity() {
                 if (uri != null) lifecycleScope.launch { doImport(uri) }
             }
             .setNegativeButton("Cancel") { _, _ ->
-                pendingImportPassword = null
-                pendingImportUri = null
+                pendingImportPassword = null; pendingImportUri = null
             }.show()
     }
 
     private suspend fun doImport(uri: Uri) {
-        val pw = pendingImportPassword ?: run { snack("Password expired, try again"); return }
+        val pw = pendingImportPassword ?: run { snack("Password expired"); return }
         val currentUserId = VaultSession.getUserId() ?: run { snack("Not logged in"); return }
-        pendingImportPassword = null
-        pendingImportUri = null
+        pendingImportPassword = null; pendingImportUri = null
 
         binding.progressGlobal.visibility = View.VISIBLE
         try {
-            // ── Read file ─────────────────────────────────────────────────────
             val fileContent = withContext(Dispatchers.IO) {
-                contentResolver.openInputStream(uri)?.use { input: InputStream ->
-                    input.bufferedReader().readText()
-                } ?: throw Exception("Cannot read file")
+                contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                    ?: throw Exception("Cannot read file")
             }
 
             val parts = fileContent.trim().split("\n", limit = 3)
             if (parts.size < 3) throw Exception("Invalid backup file format")
-            val saltB64 = parts[0].trim()
-            val ivB64   = parts[1].trim()
-            val encryptedB64 = parts[2].trim()
-
+            val saltB64 = parts[0].trim(); val ivB64 = parts[1].trim(); val encryptedB64 = parts[2].trim()
             if (saltB64.isBlank() || ivB64.isBlank() || encryptedB64.isBlank())
                 throw Exception("Corrupted backup file")
 
-            // ── Decrypt ──────────────────────────────────────────────────────
             val salt = CryptoManager.saltFromBase64(saltB64)
             val exportKey = CryptoManager.deriveKey(pw, salt)
             pw.fill('\u0000')
 
             val decryptedJson = CryptoManager.decrypt(encryptedB64, ivB64, exportKey)
             val exportObj = JSONObject(decryptedJson)
+            if (exportObj.optString("saltB64", "") != saltB64)
+                throw Exception("Backup file integrity check failed")
 
-            val exportSaltB64 = exportObj.optString("saltB64", "")
-            if (exportSaltB64 != saltB64) throw Exception("Backup file integrity check failed")
+            val itemsArr = exportObj.optJSONArray("items") ?: throw Exception("No items found")
+            val currentKey = VaultSession.getKey() ?: throw Exception("Vault session expired")
 
-            val itemsArr = exportObj.optJSONArray("items")
-                ?: throw Exception("No items found in backup")
-
-            // ── Re-encrypt items with current device key ─────────────────────
-            val currentKey = VaultSession.getKey()
-                ?: throw Exception("Vault session expired — please unlock and try again")
-
-            // Parse items from export JSON, decrypt with old key, re-encrypt with current key
+            var skipped = 0
             val importedItems = mutableListOf<VaultItem>()
             for (i in 0 until itemsArr.length()) {
                 val obj = itemsArr.getJSONObject(i)
@@ -576,38 +592,27 @@ class SettingsActivity : AppCompatActivity() {
                     aadVersion = obj.optString("aadVersion", VaultItem.AAD_VERSION),
                     createdAt = obj.optLong("createdAt", System.currentTimeMillis())
                 )
-
-                // Decrypt with the OLD key (from export password), then re-encrypt with CURRENT key
                 try {
-                    val plaintext = CryptoManager.decrypt(
-                        item.encryptedData, item.iv, exportKey,
-                        currentUserId, item.id, item.type
-                    )
+                    val plaintext = CryptoManager.decrypt(item.encryptedData, item.iv, exportKey, currentUserId, item.id, item.type)
                     val (newEnc, newIv) = CryptoManager.encrypt(plaintext, currentKey, currentUserId, item.id, item.type)
                     importedItems.add(item.copy(encryptedData = newEnc, iv = newIv, hmac = "", aadVersion = VaultItem.AAD_VERSION))
-                } catch (_: Exception) {
-                    // If an item can't be decrypted, skip it (wrong password or corrupted)
-                    snack("Skipped 1 corrupted item: ${item.name}")
-                }
+                } catch (_: Exception) { skipped++ }
             }
 
-            // ── Save imported items ──────────────────────────────────────────
             val existingItems = withContext(Dispatchers.IO) {
                 OfflineVaultStore.listItems(this@SettingsActivity, currentUserId).toMutableList()
             }
-
-            // Merge: overwrite items with same ID, add new ones
             for (newItem in importedItems) {
                 val idx = existingItems.indexOfFirst { it.id == newItem.id }
                 if (idx >= 0) existingItems[idx] = newItem else existingItems.add(newItem)
             }
-
             withContext(Dispatchers.IO) {
                 OfflineVaultStore.replaceAllItems(this@SettingsActivity, currentUserId, existingItems)
             }
 
             binding.progressGlobal.visibility = View.GONE
-            snack("✅ Restored ${importedItems.size} items from backup!")
+            val msg = "✅ Restored ${importedItems.size} items${if (skipped > 0) " ($skipped skipped)" else ""}!"
+            snack(msg)
         } catch (e: Exception) {
             binding.progressGlobal.visibility = View.GONE
             pw.fill('\u0000')

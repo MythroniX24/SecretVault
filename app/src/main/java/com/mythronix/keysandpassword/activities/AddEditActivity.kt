@@ -19,12 +19,15 @@ import com.mythronix.keysandpassword.offline.OfflineVaultStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.security.SecureRandom
 
 class AddEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAddEditBinding
     private var editItemId: String? = null
     private var currentType = VaultItem.TYPE_PASSWORD
+    private var currentCategory = VaultItem.CATEGORY_UNCATEGORIZED
+    private var isFavorite = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +43,9 @@ class AddEditActivity : AppCompatActivity() {
         supportActionBar?.title = if (editItemId != null) "Edit Entry" else "New Entry"
 
         setupTypeSpinner()
+        setupCategorySpinner()
         binding.btnSave.setOnClickListener { saveEntry() }
+        binding.btnGeneratePassword.setOnClickListener { generatePassword() }
         if (editItemId != null) loadItemForEdit(editItemId!!)
     }
 
@@ -62,12 +67,38 @@ class AddEditActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupCategorySpinner() {
+        binding.spinnerCategory.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, VaultItem.ALL_CATEGORIES)
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        binding.spinnerCategory.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                currentCategory = VaultItem.ALL_CATEGORIES[pos]
+            }
+            override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
+        }
+    }
+
     private fun updateFieldVisibility() {
         val isPw = currentType == VaultItem.TYPE_PASSWORD
         binding.tilEmailUsername.visibility = if (isPw) View.VISIBLE else View.GONE
         binding.tilPassword.visibility      = if (isPw) View.VISIBLE else View.GONE
+        binding.btnGeneratePassword.visibility = if (isPw) View.VISIBLE else View.GONE
         binding.tilToken.visibility         = if (isPw) View.GONE    else View.VISIBLE
         binding.tilName.hint = if (isPw) "Account Name" else "Service Name"
+    }
+
+    // ── Password Generator ────────────────────────────────────────────────────
+
+    private fun generatePassword() {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%&*()-_=+[]{}<>?"
+        val password = (1..24).map { chars[SecureRandom().nextInt(chars.length)] }.joinToString("")
+        binding.etPassword.setText(password)
+
+        // Copy to clipboard
+        val cb = getSystemService(android.content.ClipboardManager::class.java)
+        cb?.setPrimaryClip(android.content.ClipData.newPlainText("Secure Vault", password))
+
+        snack("✅ Strong password generated & copied!")
     }
 
     private fun loadItemForEdit(itemId: String) {
@@ -85,6 +116,13 @@ class AddEditActivity : AppCompatActivity() {
                 }
 
                 binding.etName.setText(item.name)
+                isFavorite = item.isFavorite
+                binding.switchFavorite.isChecked = item.isFavorite
+
+                // Set category spinner
+                val catIdx = VaultItem.ALL_CATEGORIES.indexOf(item.category).coerceAtLeast(0)
+                binding.spinnerCategory.setSelection(catIdx)
+
                 if (item.type == VaultItem.TYPE_PASSWORD) {
                     binding.spinnerType.setSelection(0)
                     val p = PasswordPayload.fromJson(plainJson)
@@ -133,8 +171,12 @@ class AddEditActivity : AppCompatActivity() {
                 val (enc, iv) = withContext(Dispatchers.Default) {
                     CryptoManager.encrypt(plainJson, key, userId, resolvedId, currentType)
                 }
-                val item = VaultItem(id = resolvedId, type = currentType, name = name,
-                    encryptedData = enc, iv = iv, aadVersion = VaultItem.AAD_VERSION)
+                val item = VaultItem(
+                    id = resolvedId, type = currentType, name = name,
+                    encryptedData = enc, iv = iv, aadVersion = VaultItem.AAD_VERSION,
+                    category = currentCategory,
+                    isFavorite = binding.switchFavorite.isChecked
+                )
 
                 withContext(Dispatchers.IO) { OfflineVaultStore.saveItem(this@AddEditActivity, userId, item) }
                 finish()
