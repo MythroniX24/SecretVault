@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="?attr/colorSurface" android:fillViewport="true">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:paddingHorizontal="28dp"
+        android:paddingTop="48dp" android:paddingBottom="32dp">
+
+        <!-- Icon -->
+        <com.google.android.material.card.MaterialCardView android:layout_width="72dp"
+            android:layout_height="72dp" android:layout_gravity="center_horizontal"
+            app:cardCornerRadius="20dp" app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:cardElevation="0dp">
+            <ImageView android:layout_width="36dp" android:layout_height="36dp"
+                android:layout_gravity="center" android:src="@drawable/ic_vault"
+                android:tint="?attr/colorOnPrimaryContainer"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView android:id="@+id/tvTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+            android:text="Welcome Back"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+            android:textColor="?attr/colorOnSurface" android:layout_marginTop="16dp"/>
+
+        <TextView android:id="@+id/tvSubtitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginTop="6dp" android:layout_marginBottom="28dp"/>
+
+        <!-- Email -->
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilEmail"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Email address" android:layout_marginBottom="12dp"
+            app:startIconDrawable="@drawable/ic_email">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/etEmail"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:inputType="textEmailAddress" android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Password -->
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilPassword"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Password" android:layout_marginBottom="8dp"
+            app:startIconDrawable="@drawable/ic_lock" app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/etPassword"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:inputType="textPassword" android:imeOptions="actionNext"
+                android:importantForAutofill="no"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Strength meter (5 bars) — always in layout, shown/hidden via code -->
+        <LinearLayout android:id="@+id/layoutStrength"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="8dp"
+                android:orientation="horizontal" android:weightSum="5">
+                <View android:id="@+id/bar1" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:layout_marginEnd="3dp" android:background="#E0E0E0"/>
+                <View android:id="@+id/bar2" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:layout_marginEnd="3dp" android:background="#E0E0E0"/>
+                <View android:id="@+id/bar3" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:layout_marginEnd="3dp" android:background="#E0E0E0"/>
+                <View android:id="@+id/bar4" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:layout_marginEnd="3dp" android:background="#E0E0E0"/>
+                <View android:id="@+id/bar5" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:background="#E0E0E0"/>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="4dp">
+                <TextView android:id="@+id/tvStrengthLabel" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:textSize="12sp"
+                    android:textStyle="bold"/>
+                <View android:layout_width="0dp" android:layout_height="0dp"
+                    android:layout_weight="1"/>
+                <TextView android:id="@+id/tvStrengthTip" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:textSize="11sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:maxLines="1" android:ellipsize="end"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Breach check button (signup only) -->
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnBreachCheck"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content" android:layout_height="36dp"
+            android:text="Check if Pwned" android:textSize="12sp"
+            android:layout_marginBottom="4dp" android:visibility="gone"
+            app:icon="@drawable/ic_shield_check" app:iconSize="16dp"/>
+
+        <TextView android:id="@+id/tvBreachResult" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="12sp"
+            android:layout_marginBottom="8dp" android:visibility="gone"/>
+
+        <!-- Confirm password (signup only) -->
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/tilConfirmPassword"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Confirm password" android:layout_marginBottom="8dp"
+            android:visibility="gone" app:startIconDrawable="@drawable/ic_lock"
+            app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/etConfirmPassword"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:inputType="textPassword" android:imeOptions="actionDone"
+                android:importantForAutofill="no"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Email verification notice (signup only) -->
+        <com.google.android.material.card.MaterialCardView android:id="@+id/cardVerifyNotice"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" android:visibility="gone"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp"
+            app:cardBackgroundColor="#E8F5E9" app:strokeWidth="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:padding="12dp"
+                android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📧" android:textSize="20sp" android:layout_marginEnd="8dp"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="You will receive a verification email after account creation"
+                    android:textSize="12sp" android:textColor="#2E7D32"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Action button -->
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnAction"
+            android:layout_width="match_parent" android:layout_height="56dp"
+            android:text="Sign In" android:textSize="16sp"
+            app:cornerRadius="14dp" android:layout_marginBottom="16dp"/>
+
+        <!-- Mode switch link -->
+        <TextView android:id="@+id/tvSwitchMode" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+            android:text="Don't have an account? Create one"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorPrimary" android:padding="8dp"/>
+
+        <ProgressBar android:id="@+id/progressBar" android:layout_width="36dp"
+            android:layout_height="36dp" android:layout_gravity="center"
+            android:layout_marginTop="8dp" android:visibility="gone"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center"
+            android:layout_marginTop="24dp">
+            <ImageView android:layout_width="14dp" android:layout_height="14dp"
+                android:src="@drawable/ic_lock" android:tint="?attr/colorOnSurfaceVariant"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="  End-to-End Encrypted · Argon2id · AES-256-GCM"
+                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

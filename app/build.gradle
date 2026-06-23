@@ -1,0 +1,92 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+android {
+    namespace 'com.mythronix.keysandpassword'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.mythronix.keysandpassword"
+        minSdk 28
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    // Exclude conflicting Bouncy Castle META-INF
+    packagingOptions {
+        exclude 'META-INF/BCKEY.DSA'
+        exclude 'META-INF/BCKEY.SF'
+        exclude 'META-INF/BC2048KE.DSA'
+        exclude 'META-INF/BC2048KE.SF'
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+        disable 'MissingDefaultResource', 'MissingTranslation'
+    }
+}
+
+dependencies {
+
+    // AndroidX Core
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-process:2.7.0'
+
+    // Material Design 3
+    implementation 'com.google.android.material:material:1.11.0'
+
+    // Biometric
+    implementation 'androidx.biometric:biometric:1.1.0'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
+
+    // RecyclerView
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    // EncryptedSharedPreferences
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // Argon2
+    implementation 'com.lambdapioneer.argon2kt:argon2kt:1.4.0'
+
+    // Bouncy Castle
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+
+    testImplementation 'junit:junit:4.13.2'
+}

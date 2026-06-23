@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="24dp">
+
+    <TextView android:id="@+id/tvField1Label" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="Email / Username"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant" android:letterSpacing="0.08"/>
+    <TextView android:id="@+id/tvField1Value" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="?attr/colorOnSurface" android:layout_marginTop="2dp" android:layout_marginBottom="14dp"/>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="?attr/colorOutline" android:layout_marginBottom="14dp"/>
+
+    <TextView android:id="@+id/tvField2Label" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="Password"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant" android:letterSpacing="0.08"/>
+    <TextView android:id="@+id/tvField2Value" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="?attr/colorOnSurface" android:layout_marginTop="2dp"
+        android:fontFamily="monospace"/>
+
+    <!-- Notes section (hidden when empty) -->
+    <View android:id="@+id/dividerNotes" android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="?attr/colorOutline" android:layout_marginTop="14dp"
+        android:layout_marginBottom="14dp" android:visibility="gone"/>
+    <TextView android:id="@+id/tvNotesLabel" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="Notes"
+        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant" android:letterSpacing="0.08"
+        android:visibility="gone"/>
+    <TextView android:id="@+id/tvNotesValue" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnSurface" android:layout_marginTop="2dp"
+        android:visibility="gone"/>
+</LinearLayout>

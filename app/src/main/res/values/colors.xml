@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light theme colors — same names used in values-night/ with dark values -->
+    <color name="md_primary">#4A55E0</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#E1E1FF</color>
+    <color name="md_on_primary_container">#00006E</color>
+    <color name="md_surface">#FAFAFF</color>
+    <color name="md_on_surface">#1B1B1F</color>
+    <color name="md_surface_variant">#E4E1EC</color>
+    <color name="md_on_surface_variant">#47464F</color>
+    <color name="md_outline">#787680</color>
+    <color name="md_error">#BA1A1A</color>
+</resources>

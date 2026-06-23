@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme overrides — SAME names as values/colors.xml, dark values -->
+    <color name="md_primary">#BEC2FF</color>
+    <color name="md_on_primary">#1900A9</color>
+    <color name="md_primary_container">#2F3EC7</color>
+    <color name="md_on_primary_container">#E1E1FF</color>
+    <color name="md_surface">#131318</color>
+    <color name="md_on_surface">#E4E1E6</color>
+    <color name="md_surface_variant">#47464F</color>
+    <color name="md_on_surface_variant">#C8C5D0</color>
+    <color name="md_outline">#918F9A</color>
+    <color name="md_error">#FFB4AB</color>
+</resources>

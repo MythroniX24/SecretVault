@@ -1,0 +1,16 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+app/release/
+*.jks
+*.keystore
+
+# google-services.json — keep out of repo, inject via GitHub Secret
+app/google-services.json

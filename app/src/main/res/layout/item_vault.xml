@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="5dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutline"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp"
+        android:gravity="center_vertical">
+
+        <!-- Colored icon bubble -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:cardElevation="0dp">
+            <ImageView
+                android:id="@+id/ivItemIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:tint="?attr/colorOnPrimaryContainer"
+                android:src="@drawable/ic_lock"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Name + type -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp">
+
+            <TextView
+                android:id="@+id/tvItemName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurface"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="Account Name"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipType"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:text="Password"
+                android:checkable="false"
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                app:chipMinHeight="24dp"
+                app:chipBackgroundColor="?attr/colorSurfaceVariant"/>
+
+        </LinearLayout>
+
+        <!-- Chevron -->
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorOnSurfaceVariant"/>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

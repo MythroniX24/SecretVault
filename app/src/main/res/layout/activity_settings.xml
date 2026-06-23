@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
+
+    <com.google.android.material.appbar.AppBarLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+        <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar"
+            android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"/>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ProgressBar android:id="@+id/progressGlobal" android:layout_width="48dp" android:layout_height="48dp"
+        android:layout_gravity="center" android:visibility="gone" android:elevation="8dp"/>
+
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:paddingHorizontal="16dp"
+            android:paddingTop="12dp" android:paddingBottom="40dp">
+
+            <!-- ── ACCOUNT ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="ACCOUNT" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+                    <com.google.android.material.card.MaterialCardView android:layout_width="44dp"
+                        android:layout_height="44dp" app:cardCornerRadius="22dp"
+                        app:cardBackgroundColor="?attr/colorPrimaryContainer" app:cardElevation="0dp">
+                        <ImageView android:layout_width="22dp" android:layout_height="22dp"
+                            android:layout_gravity="center" android:src="@drawable/ic_email"
+                            android:tint="?attr/colorOnPrimaryContainer"/>
+                    </com.google.android.material.card.MaterialCardView>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="14dp">
+                        <TextView android:id="@+id/tvAccountEmail" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                            android:textColor="?attr/colorOnSurface"/>
+                        <TextView android:id="@+id/tvUserId" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant" android:fontFamily="monospace" android:layout_marginTop="2dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── SECURITY ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="SECURITY" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingHorizontal="4dp" android:paddingVertical="4dp">
+
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnChangeAccountPassword"
+                        style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="Change Account Password"
+                        android:gravity="start|center_vertical" app:icon="@drawable/ic_key"
+                        app:iconGravity="start" app:iconPadding="12dp"/>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="?attr/colorOutline" android:alpha="0.2"/>
+
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnChangeMasterPassword"
+                        style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="Change Master Password"
+                        android:gravity="start|center_vertical" app:icon="@drawable/ic_lock"
+                        app:iconGravity="start" app:iconPadding="12dp"/>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="?attr/colorOutline" android:alpha="0.2"/>
+
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnResetBiometric"
+                        style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="Reset Biometric Key"
+                        android:gravity="start|center_vertical" app:icon="@drawable/ic_fingerprint"
+                        app:iconGravity="start" app:iconPadding="12dp"/>
+
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="?attr/colorOutline" android:alpha="0.2"/>
+
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnViewSessions"
+                        style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="View Active Sessions"
+                        android:gravity="start|center_vertical" app:icon="@drawable/ic_security"
+                        app:iconGravity="start" app:iconPadding="12dp"/>
+
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnLockNow"
+                        style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="Lock Vault Now"
+                        android:gravity="start|center_vertical" app:icon="@drawable/ic_lock"
+                        app:iconGravity="start" app:iconPadding="12dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── FINGERPRINT ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="FINGERPRINT UNLOCK" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp"
+                app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingVertical="14dp">
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+                        <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                            android:src="@drawable/ic_fingerprint" android:tint="?attr/colorPrimary"
+                            android:layout_marginEnd="12dp"/>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Fingerprint / Biometric"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                                android:textColor="?attr/colorOnSurface"/>
+                            <TextView android:id="@+id/tvFingerprintStatus"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Checking…"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSetupFingerprint"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="Set Up Fingerprint"
+                        app:icon="@drawable/ic_fingerprint"
+                        app:iconGravity="start"
+                        app:iconPadding="8dp"
+                        app:cornerRadius="10dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── APP PIN ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="APP PIN" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingVertical="12dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Quick Unlock PIN" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                                android:textColor="?attr/colorOnSurface"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="4-8 digit PIN for quick access" android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchAppPin"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnSetPin"
+                        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content"
+                        android:layout_height="36dp" android:text="Set / Change PIN"
+                        android:textSize="12sp" android:layout_marginTop="8dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── DURESS PIN ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="DURESS PIN" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorPrimary" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingVertical="12dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Duress PIN" android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                                android:textColor="?attr/colorOnSurface"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Silently signs out when entered under coercion"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant"/>
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchDuressPin"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnSetDuressPin"
+                        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content"
+                        android:layout_height="36dp" android:text="Set / Change Duress PIN"
+                        android:textSize="12sp" android:layout_marginTop="8dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── ENCRYPTION INFO ── -->
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorPrimaryContainer" app:strokeWidth="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🔐  ENCRYPTION" android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="?attr/colorOnPrimaryContainer" android:layout_marginBottom="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="KDF:   Argon2id (64MB · 3 passes · 4 lanes)\nCipher:  AES-256-GCM (authenticated)\nIntegrity: HMAC-SHA256 per entry\nKeystore: Hardware-backed wrapping"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnPrimaryContainer" android:fontFamily="monospace"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── DANGER ZONE ── -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="DANGER ZONE" android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="#F44336" android:letterSpacing="0.1"
+                android:paddingHorizontal="4dp" android:layout_marginBottom="6dp"/>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp" app:strokeColor="#F44336">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnDeleteAllData"
+                        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+                        android:layout_height="52dp" android:text="Delete All Data"
+                        android:textColor="#F44336" app:strokeColor="#F44336"
+                        app:icon="@drawable/ic_delete" app:iconTint="#F44336"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Sign Out + Version -->
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnSignOut"
+                style="@style/Widget.Material3.Button.TonalButton" android:layout_width="match_parent"
+                android:layout_height="52dp" android:text="Sign Out"
+                android:layout_marginBottom="16dp" app:cornerRadius="14dp"/>
+
+            <TextView android:id="@+id/tvAppVersion" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
