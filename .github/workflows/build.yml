@@ -28,15 +28,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # ── 4. Inject google-services.json from GitHub Secret ────────────────────
-      #       Never commit this file to the repo.
-      #       Add secret: GOOGLE_SERVICES_JSON = base64 of the file
-      - name: Inject google-services.json
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/google-services.json
-          echo "google-services.json injected ✅"
-
-      # ── 5. Cache Gradle ──────────────────────────────────────────────────────
+      # ── 4. Cache Gradle ──────────────────────────────────────────────────────
       - name: Cache Gradle packages
         uses: actions/cache@v4
         with:
@@ -46,53 +38,24 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      # ── 6. Download gradle-wrapper.jar (direct from Gradle GitHub, no apt) ───
-      - name: Download gradle-wrapper.jar
-        run: |
-          mkdir -p gradle/wrapper
-          curl -fsSL \
-            "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
-            -o gradle/wrapper/gradle-wrapper.jar
-          chmod +x gradlew
+      # ── 5. Grant execute permission ───────────────────────────────────────────
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
 
-      # ── 7. Lint (non-blocking) ────────────────────────────────────────────────
+      # ── 6. Lint (non-blocking) ────────────────────────────────────────────────
       - name: Run Lint
         run: ./gradlew lint --stacktrace
         continue-on-error: true
 
-      # ── 8. Debug APK ─────────────────────────────────────────────────────────
+      # ── 7. Build Debug APK ───────────────────────────────────────────────────
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # ── 9. Release APK ───────────────────────────────────────────────────────
+      # ── 8. Build Release APK ─────────────────────────────────────────────────
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      # ── 10. Check if keystore secret is set ──────────────────────────────────
-      - name: Check keystore availability
-        id: keystore_check
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "available=true" >> $GITHUB_OUTPUT
-          else
-            echo "available=false" >> $GITHUB_OUTPUT
-          fi
-
-      # ── 11. Sign Release APK (only if KEYSTORE_BASE64 secret is set) ─────────
-      - name: Sign Release APK
-        if: steps.keystore_check.outputs.available == 'true' && github.event_name != 'pull_request'
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: "34.0.0"
-
-      # ── 12. Upload Debug APK ──────────────────────────────────────────────────
+      # ── 9. Upload Debug APK ──────────────────────────────────────────────────
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -100,7 +63,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      # ── 13. Upload Release APK (unsigned) ────────────────────────────────────
+      # ── 10. Upload Release APK (unsigned) ────────────────────────────────────
       - name: Upload Release APK (unsigned)
         uses: actions/upload-artifact@v4
         with:
@@ -108,16 +71,7 @@ jobs:
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 30
 
-      # ── 14. Upload Signed APK ─────────────────────────────────────────────────
-      - name: Upload Signed Release APK
-        if: steps.sign_app.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: SecureVault-release-signed-${{ github.run_number }}
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          retention-days: 90
-
-      # ── 15. Create GitHub Release on version tags ─────────────────────────────
+      # ── 11. Create GitHub Release on version tags ─────────────────────────────
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2

@@ -20,23 +20,20 @@ import com.mythronix.keysandpassword.VaultSession
 import com.mythronix.keysandpassword.crypto.CryptoManager
 import com.mythronix.keysandpassword.crypto.KeystoreHelper
 import com.mythronix.keysandpassword.crypto.LockoutManager
-import com.mythronix.keysandpassword.crypto.PasswordStrengthUtil
 import com.mythronix.keysandpassword.crypto.PinManager
 import com.mythronix.keysandpassword.databinding.ActivityLockBinding
 import com.mythronix.keysandpassword.offline.OfflineAccountManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
-import javax.crypto.SecretKey
 
 class LockActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLockBinding
     private lateinit var securePrefs: android.content.SharedPreferences
 
-    // Offline: single local account id stored in OfflineAccountManager.
-    // We keep it stable by deriving AAD / keystore ids from the offline accountId.
+    private var accountId = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE,
@@ -45,7 +42,6 @@ class LockActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         securePrefs = buildSecurePrefs()
-        uid = AuthManager.getCurrentUser()?.uid ?: ""
 
         binding.btnUnlockPassword.setOnClickListener { unlockWithPassword() }
         binding.btnUnlockPin.setOnClickListener      { showPinDialog() }
@@ -56,13 +52,14 @@ class LockActivity : AppCompatActivity() {
         }
         if (PinManager.isPinEnabled(this)) binding.btnUnlockPin.visibility = View.VISIBLE
 
-        // SHOW FORM IMMEDIATELY — don't wait for network (fixes blank screen)
+        // Show master password form immediately — no blank screen
         showUnlockMode()
-        // Then check biometric availability async
-        lifecycleScope.launch { checkAndShowBiometric() }
+
+        // Load account and check biometric availability
+        lifecycleScope.launch { loadAndCheckBiometric() }
     }
 
-    // ─── Show master password form immediately, no blank screen ──────────────
+    // ─── Show master password form ────────────────────────────────────────────
     private fun showUnlockMode() {
         binding.layoutBiometric.visibility      = View.GONE
         binding.layoutMasterPassword.visibility = View.VISIBLE
@@ -74,56 +71,25 @@ class LockActivity : AppCompatActivity() {
         binding.layoutStrength.visibility     = View.GONE
     }
 
-    // ─── Async: check if biometric available, show if yes ────────────────────
-    private suspend fun initFlow() {
-        // Check if user is new (no salt = first time)
-        val salt = withContext(Dispatchers.IO) {
-            try { if (uid.isNotEmpty()) FirestoreManager.getSalt(uid) else null }
-            catch (_: Exception) { null }
-        }
-        isNewUser = (salt == null)
-
-        if (isNewUser) {
-            // First time: show create password form
-            binding.layoutBiometric.visibility      = View.GONE
-            binding.layoutMasterPassword.visibility = View.VISIBLE
-            binding.tvUseMasterPassword.visibility  = View.GONE
-            binding.tvLockTitle.text    = "Set Master Password"
-            binding.tvLockSubtitle.text = "Create a strong password. Never stored — remember it!"
-            binding.tilConfirmMasterPw.visibility = View.VISIBLE
-            binding.btnUnlockPassword.text        = "Create Vault"
-            binding.layoutStrength.visibility     = View.GONE
-            attachStrengthMeter()
-        }
-    }
-
-    private suspend fun checkAndShowBiometric() {
-        // First check salt to determine new vs returning user
-        withContext(Dispatchers.IO) {
-            try {
-                val salt = if (uid.isNotEmpty()) FirestoreManager.getSalt(uid) else null
-                isNewUser = (salt == null)
-            } catch (_: Exception) {
-                isNewUser = false // assume returning user on network error
-            }
+    // ─── Async: load account, check biometric availability ────────────────────
+    private suspend fun loadAndCheckBiometric() {
+        val account = withContext(Dispatchers.IO) {
+            OfflineAccountManager.loadAccount(this@LockActivity)
         }
 
-        if (isNewUser) {
-            // New user - show create password form
-            binding.tvLockTitle.text              = "Set Master Password"
-            binding.tvLockSubtitle.text           = "Create a strong password — never stored, remember it!"
-            binding.tilConfirmMasterPw.visibility = View.VISIBLE
-            binding.btnUnlockPassword.text        = "Create Vault"
-            binding.layoutMasterPassword.visibility = View.VISIBLE
-            attachStrengthMeter()
+        if (account == null) {
+            // No account found — redirect to create one
+            goToAuth()
             return
         }
 
-        // Returning user - check biometric
-        val wrappedKey = securePrefs.getString(prefWrappedKey(uid), null)
-        val wrappedIv  = securePrefs.getString(prefWrappedIv(uid), null)
+        accountId = account.accountId
+
+        // Check if biometric is available
+        val wrappedKey = securePrefs.getString(prefWrappedKey(accountId), null)
+        val wrappedIv  = securePrefs.getString(prefWrappedIv(accountId), null)
         val hasBio     = wrappedKey != null && wrappedIv != null
-                         && KeystoreHelper.hasWrappingKey(uid) && checkBiometric()
+                         && KeystoreHelper.hasWrappingKey(accountId) && checkBiometric()
 
         if (hasBio) {
             binding.layoutBiometric.visibility      = View.VISIBLE
@@ -131,68 +97,24 @@ class LockActivity : AppCompatActivity() {
             binding.tvUseMasterPassword.visibility  = View.VISIBLE
             triggerBiometric(wrappedKey!!, wrappedIv!!)
         }
-        // else: password form already shown from showUnlockMode()
-    }
-
-    // ─── Strength meter — attached when in create-password mode ──────────────
-    private var strengthAttached = false
-    private fun attachStrengthMeter() {
-        if (strengthAttached) return
-        strengthAttached = true
-        binding.etMasterPassword.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
-            override fun afterTextChanged(s: Editable?) {}
-            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, count: Int) {
-                val pw = s?.toString() ?: ""
-                if (pw.isEmpty() || !isNewUser) {
-                    binding.layoutStrength.visibility = View.GONE; return
-                }
-                binding.layoutStrength.visibility = View.VISIBLE
-                val r = PasswordStrengthUtil.evaluate(pw)
-                val filled: Int
-                if      (r.score >= 80) filled = 5
-                else if (r.score >= 60) filled = 4
-                else if (r.score >= 40) filled = 3
-                else if (r.score >= 20) filled = 2
-                else if (r.score > 0)   filled = 1
-                else                    filled = 0
-                val col: Int
-                if      (filled >= 4) col = Color.parseColor("#4CAF50")
-                else if (filled >= 2) col = Color.parseColor("#FF9800")
-                else                  col = Color.parseColor("#F44336")
-                val emp = Color.parseColor("#E0E0E0")
-                binding.bar1.setBackgroundColor(if (filled >= 1) col else emp)
-                binding.bar2.setBackgroundColor(if (filled >= 2) col else emp)
-                binding.bar3.setBackgroundColor(if (filled >= 3) col else emp)
-                binding.bar4.setBackgroundColor(if (filled >= 4) col else emp)
-                binding.bar5.setBackgroundColor(if (filled >= 5) col else emp)
-                binding.tvStrengthLabel.text = r.strength.label
-                binding.tvStrengthLabel.setTextColor(col)
-                binding.tvStrengthTip.text = r.tips.firstOrNull() ?: ""
-            }
-        })
     }
 
     // ─── Biometric ────────────────────────────────────────────────────────────
     private fun triggerBiometric(wrappedKey: String, wrappedIv: String) {
         lifecycleScope.launch {
-            if (uid.isNotEmpty()) {
-                val lock = withContext(Dispatchers.IO) {
-                    runCatching { LockoutManager.checkLock(uid, LockoutManager.LockType.FINGERPRINT) }
-                        .getOrNull()
-                }
-                if (lock?.isLocked == true) {
-                    snack("⛔ Fingerprint locked for ${lock.remainingHours()}")
-                    binding.layoutBiometric.visibility      = View.GONE
-                    binding.layoutMasterPassword.visibility = View.VISIBLE
-                    binding.tvUseMasterPassword.visibility  = View.GONE
-                    return@launch
-                }
+            val lock = runCatching { LockoutManager.checkLock(this@LockActivity, accountId, LockoutManager.LockType.FINGERPRINT) }
+                .getOrNull()
+            if (lock?.isLocked == true) {
+                snack("⛔ Fingerprint locked for ${lock.remainingHours()}")
+                binding.layoutBiometric.visibility      = View.GONE
+                binding.layoutMasterPassword.visibility = View.VISIBLE
+                binding.tvUseMasterPassword.visibility  = View.GONE
+                return@launch
             }
-            val cipher = KeystoreHelper.getDecryptCipherOrNull(uid, wrappedIv)
+            val cipher = KeystoreHelper.getDecryptCipherOrNull(accountId, wrappedIv)
             if (cipher == null) {
-                securePrefs.edit().remove(prefWrappedKey(uid)).remove(prefWrappedIv(uid)).apply()
-                KeystoreHelper.deleteWrappingKey(uid)
+                securePrefs.edit().remove(prefWrappedKey(accountId)).remove(prefWrappedIv(accountId)).apply()
+                KeystoreHelper.deleteWrappingKey(accountId)
                 binding.layoutBiometric.visibility      = View.GONE
                 binding.layoutMasterPassword.visibility = View.VISIBLE
                 binding.tvUseMasterPassword.visibility  = View.GONE
@@ -206,11 +128,8 @@ class LockActivity : AppCompatActivity() {
                         val key = runCatching {
                             KeystoreHelper.unwrapKey(r.cryptoObject!!.cipher!!, wrappedKey)
                         }.getOrNull() ?: return
-                        VaultSession.setKey(key, uid)
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            runCatching { LockoutManager.clearLock(uid, LockoutManager.LockType.FINGERPRINT) }
-                            runCatching { DeviceSessionManager.recordSession(this@LockActivity, uid) }
-                        }
+                        VaultSession.setKey(key, accountId)
+                        runCatching { LockoutManager.clearLock(this@LockActivity, accountId, LockoutManager.LockType.FINGERPRINT) }
                         goToVault()
                     }
                     override fun onAuthenticationError(c: Int, s: CharSequence) {
@@ -219,9 +138,7 @@ class LockActivity : AppCompatActivity() {
                     }
                     override fun onAuthenticationFailed() {
                         lifecycleScope.launch {
-                            val st = withContext(Dispatchers.IO) {
-                                runCatching { LockoutManager.recordFailure(uid, LockoutManager.LockType.FINGERPRINT) }.getOrNull()
-                            }
+                            val st = runCatching { LockoutManager.recordFailure(this@LockActivity, accountId, LockoutManager.LockType.FINGERPRINT) }.getOrNull()
                             if (st?.isLocked == true) {
                                 snack("⛔ Fingerprint locked 24h — use Master Password")
                                 binding.layoutBiometric.visibility      = View.GONE
@@ -246,94 +163,58 @@ class LockActivity : AppCompatActivity() {
     // ─── Master Password ──────────────────────────────────────────────────────
     private fun unlockWithPassword() {
         val pw      = binding.etMasterPassword.text.toString()
-        val confirm = binding.etConfirmMasterPassword.text.toString()
         if (pw.length < 8) { snack("Minimum 8 characters required"); return }
-        if (isNewUser && pw != confirm) { snack("Passwords do not match"); return }
+        if (accountId.isEmpty()) { snack("Loading account — please wait"); return }
 
         setLoading(true)
         lifecycleScope.launch {
             try {
-                if (!isNewUser && uid.isNotEmpty()) {
-                    val st = withContext(Dispatchers.IO) {
-                        runCatching { LockoutManager.checkLock(uid, LockoutManager.LockType.MASTER_PASSWORD) }.getOrNull()
-                    }
-                    if (st?.isLocked == true) {
-                        setLoading(false)
-                        snack("⛔ Locked for ${st.remainingHours()} — too many wrong attempts")
-                        return@launch
-                    }
+                // Check lockout
+                val st = runCatching { LockoutManager.checkLock(this@LockActivity, accountId, LockoutManager.LockType.MASTER_PASSWORD) }.getOrNull()
+                if (st?.isLocked == true) {
+                    setLoading(false)
+                    snack("⛔ Locked for ${st.remainingHours()} — too many wrong attempts")
+                    return@launch
                 }
 
-                val salt: ByteArray = withContext(Dispatchers.IO) {
-                    if (isNewUser) {
-                        CryptoManager.generateSalt().also {
-                            FirestoreManager.saveSalt(uid, CryptoManager.saltToBase64(it))
-                        }
-                    } else {
-                        val b64 = FirestoreManager.getSalt(uid)
-                        if (b64 == null) {
-                            withContext(Dispatchers.Main) {
-                                setLoading(false)
-                                snack("Cannot reach server — check internet and try again")
-                            }
-                            return@withContext null
-                        }
-                        CryptoManager.saltFromBase64(b64)
-                    }
-                } ?: return@launch
-
-                // Verify password quickly before slow Argon2
-                if (!isNewUser && uid.isNotEmpty()) {
-                    val wrong = withContext(Dispatchers.IO) {
-                        try {
-                            val v = FirestoreManager.getVerifier(uid)
-                            if (v != null) {
-                                val vs = CryptoManager.verifierSaltFromBase64(v.saltB64)
-                                val h  = CryptoManager.computeVerifier(pw.toCharArray(), vs)
-                                !CryptoManager.safeEquals(h, v.hash)
-                            } else false
-                        } catch (_: Exception) { false }
-                    }
-                    if (wrong) {
-                        val st = withContext(Dispatchers.IO) {
-                            runCatching { LockoutManager.recordFailure(uid, LockoutManager.LockType.MASTER_PASSWORD) }.getOrNull()
-                        }
-                        setLoading(false)
-                        if (st?.isLocked == true) snack("⛔ Account locked 24h — too many wrong attempts")
-                        else snack("Wrong master password")
-                        return@launch
-                    }
+                // Verify password against offline account
+                val passwordCorrect = withContext(Dispatchers.IO) {
+                    OfflineAccountManager.verifyPassword(this@LockActivity, pw.toCharArray())
                 }
 
-                // Argon2id on background thread — prevents ANR
+                if (!passwordCorrect) {
+                    val lockStatus = runCatching { LockoutManager.recordFailure(this@LockActivity, accountId, LockoutManager.LockType.MASTER_PASSWORD) }.getOrNull()
+                    setLoading(false)
+                    if (lockStatus?.isLocked == true) snack("⛔ Account locked 24h — too many wrong attempts")
+                    else snack("Wrong master password")
+                    return@launch
+                }
+
+                // Derive AES key
+                val saltB64 = withContext(Dispatchers.IO) {
+                    OfflineAccountManager.getSaltB64(this@LockActivity)
+                } ?: run {
+                    setLoading(false)
+                    snack("Account data corrupted — recreate vault")
+                    return@launch
+                }
+
+                val salt = CryptoManager.saltFromBase64(saltB64)
                 val key = withContext(Dispatchers.Default) {
                     CryptoManager.deriveKey(pw.toCharArray(), salt)
                 }
-                VaultSession.setKey(key, uid)
 
-                if (isNewUser && uid.isNotEmpty()) {
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            val vs = CryptoManager.generateVerifierSalt()
-                            val vh = CryptoManager.computeVerifier(pw.toCharArray(), vs)
-                            FirestoreManager.saveVerifier(uid, vh, CryptoManager.verifierSaltToBase64(vs))
-                        }
-                    }
-                }
+                VaultSession.setKey(key, accountId)
 
-                if (!isNewUser && uid.isNotEmpty()) {
-                    withContext(Dispatchers.IO) {
-                        runCatching { LockoutManager.clearLock(uid, LockoutManager.LockType.MASTER_PASSWORD) }
-                        runCatching { DeviceSessionManager.recordSession(this@LockActivity, uid) }
-                    }
-                }
+                // Clear lockout on successful unlock
+                runCatching { LockoutManager.clearLock(this@LockActivity, accountId, LockoutManager.LockType.MASTER_PASSWORD) }
 
                 setLoading(false)
                 if (checkBiometric()) offerFingerprint(key) else goToVault()
 
             } catch (e: Exception) {
                 setLoading(false)
-                snack("Error: ${e.message ?: "Check internet connection"}")
+                snack("Error: ${e.message ?: "Unknown error"}")
             }
         }
     }
@@ -347,18 +228,18 @@ class LockActivity : AppCompatActivity() {
             .show()
     }
 
-    fun setupBiometric(key: javax.crypto.SecretKey) {
+    private fun setupBiometric(key: javax.crypto.SecretKey) {
         try {
-            KeystoreHelper.deleteWrappingKey(uid)
-            KeystoreHelper.generateWrappingKey(uid)
-            val cipher = KeystoreHelper.getEncryptCipherOrNull(uid) ?: run { goToVault(); return }
+            KeystoreHelper.deleteWrappingKey(accountId)
+            KeystoreHelper.generateWrappingKey(accountId)
+            val cipher = KeystoreHelper.getEncryptCipherOrNull(accountId) ?: run { goToVault(); return }
             val prompt = BiometricPrompt(this, ContextCompat.getMainExecutor(this),
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(r: BiometricPrompt.AuthenticationResult) {
                         r.cryptoObject?.cipher?.let { c ->
                             val (w, iv) = KeystoreHelper.wrapKey(c, key)
-                            securePrefs.edit().putString(prefWrappedKey(uid), w)
-                                .putString(prefWrappedIv(uid), iv).apply()
+                            securePrefs.edit().putString(prefWrappedKey(accountId), w)
+                                .putString(prefWrappedIv(accountId), iv).apply()
                         }
                         goToVault()
                     }
@@ -376,11 +257,9 @@ class LockActivity : AppCompatActivity() {
 
     // ─── PIN ──────────────────────────────────────────────────────────────────
     private fun showPinDialog() {
-        if (uid.isEmpty()) return
+        if (accountId.isEmpty()) return
         lifecycleScope.launch {
-            val lock = withContext(Dispatchers.IO) {
-                runCatching { LockoutManager.checkLock(uid, LockoutManager.LockType.PIN) }.getOrNull()
-            }
+            val lock = runCatching { LockoutManager.checkLock(this@LockActivity, accountId, LockoutManager.LockType.PIN) }.getOrNull()
             if (lock?.isLocked == true) { snack("⛔ PIN locked — use Master Password"); return@launch }
             val et = com.google.android.material.textfield.TextInputEditText(this@LockActivity).apply {
                 inputType = android.text.InputType.TYPE_CLASS_NUMBER or
@@ -396,7 +275,7 @@ class LockActivity : AppCompatActivity() {
                         val pin = et.text.toString()
                         if (PinManager.isDuressPinEnabled(this@LockActivity) &&
                             PinManager.verifyDuressPin(this@LockActivity, pin)) {
-                            VaultSession.clearAll(); AuthManager.signOut()
+                            VaultSession.clearAll()
                             startActivity(Intent(this@LockActivity, AuthActivity::class.java))
                             finishAffinity(); return@launch
                         }
@@ -404,12 +283,10 @@ class LockActivity : AppCompatActivity() {
                             PinManager.verifyPinAndGetKey(this@LockActivity, pin)
                         }
                         if (mk != null) {
-                            withContext(Dispatchers.IO) { runCatching { LockoutManager.clearLock(uid, LockoutManager.LockType.PIN) } }
-                            VaultSession.setKey(mk, uid); goToVault()
+                            runCatching { LockoutManager.clearLock(this@LockActivity, accountId, LockoutManager.LockType.PIN) }
+                            VaultSession.setKey(mk, accountId); goToVault()
                         } else {
-                            val st = withContext(Dispatchers.IO) {
-                                runCatching { LockoutManager.recordFailure(uid, LockoutManager.LockType.PIN) }.getOrNull()
-                            }
+                            val st = runCatching { LockoutManager.recordFailure(this@LockActivity, accountId, LockoutManager.LockType.PIN) }.getOrNull()
                             if (st?.isLocked == true) snack("⛔ PIN locked 24h")
                             else snack("Incorrect PIN")
                         }
@@ -427,21 +304,8 @@ class LockActivity : AppCompatActivity() {
         return r == BiometricManager.BIOMETRIC_SUCCESS
     }
 
-    fun getBiometricState(): BiometricState {
-        val bm = BiometricManager.from(this)
-        val r  = if (android.os.Build.VERSION.SDK_INT >= 30)
-                     bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                 else @Suppress("DEPRECATION") bm.canAuthenticate()
-        return when (r) {
-            BiometricManager.BIOMETRIC_SUCCESS              -> BiometricState.AVAILABLE
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BiometricState.NONE_ENROLLED
-            else                                            -> BiometricState.NOT_AVAILABLE
-        }
-    }
-
-    enum class BiometricState { AVAILABLE, NONE_ENROLLED, NOT_AVAILABLE }
-
     private fun goToVault() { startActivity(Intent(this, VaultActivity::class.java)); finish() }
+    private fun goToAuth() { startActivity(Intent(this, AuthActivity::class.java)); finish() }
 
     private fun setLoading(on: Boolean) {
         binding.progressBar.visibility      = if (on) View.VISIBLE else View.GONE
@@ -461,7 +325,5 @@ class LockActivity : AppCompatActivity() {
     companion object {
         fun prefWrappedKey(uid: String) = "sv_wk_${uid.take(12)}"
         fun prefWrappedIv(uid: String)  = "sv_wi_${uid.take(12)}"
-        fun prefKey(uid: String)        = prefWrappedKey(uid)
-        fun prefKeyIv(uid: String)      = prefWrappedIv(uid)
     }
 }

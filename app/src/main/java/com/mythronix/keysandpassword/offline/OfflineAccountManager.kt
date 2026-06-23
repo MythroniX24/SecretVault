@@ -32,7 +32,14 @@ object OfflineAccountManager {
         val saltB64: String,
         val verifierHashB64: String,
         val verifierSaltB64: String
-    )
+    ) {
+        fun toJson(): String = JSONObject()
+            .put("accountId", accountId)
+            .put("saltB64", saltB64)
+            .put("verifierHashB64", verifierHashB64)
+            .put("verifierSaltB64", verifierSaltB64)
+            .toString()
+    }
 
     private fun accountFile(ctx: Context): File = File(ctx.filesDir, ACCOUNT_FILE)
 
@@ -93,6 +100,37 @@ object OfflineAccountManager {
             val vs = CryptoManager.verifierSaltFromBase64(acc.verifierSaltB64)
             val computed = CryptoManager.computeVerifier(masterPassword, vs)
             CryptoManager.safeEquals(computed, acc.verifierHashB64)
+        }
+
+    /**
+     * Update the account's salt and verifier with new values (master password change).
+     * Preserves the same accountId — vault items stay associated.
+     */
+    suspend fun updatePassword(ctx: Context, newMasterPassword: CharArray): Account =
+        withContext(Dispatchers.IO) {
+            val existing = loadAccount(ctx) ?: throw IllegalStateException("No account to update")
+
+            val newSalt = CryptoManager.generateSalt()
+            val newSaltB64 = CryptoManager.saltToBase64(newSalt)
+
+            val newVerifierSalt = CryptoManager.generateVerifierSalt()
+            val newVerifierSaltB64 = CryptoManager.verifierSaltToBase64(newVerifierSalt)
+            val newVerifierHash = CryptoManager.computeVerifier(newMasterPassword, newVerifierSalt)
+
+            val updated = Account(
+                accountId = existing.accountId,  // Preserve same ID!
+                saltB64 = newSaltB64,
+                verifierHashB64 = newVerifierHash,
+                verifierSaltB64 = newVerifierSaltB64
+            )
+
+            accountFile(ctx).writeText(updated.toJson())
+            updated
+        }
+
+    suspend fun deleteAccount(ctx: Context) =
+        withContext(Dispatchers.IO) {
+            accountFile(ctx).delete()
         }
 
     suspend fun getSaltB64(ctx: Context): String? =

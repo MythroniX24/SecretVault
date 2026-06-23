@@ -1,34 +1,26 @@
 package com.mythronix.keysandpassword.crypto
 
-import android.util.Base64
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import android.content.Context
+import android.content.SharedPreferences
 import java.security.MessageDigest
 
 /**
- * Firebase-backed lockout system.
- * Stored in Firestore — persists through app clear, uninstall, reinstall.
- *
- * Collections:
- *   lockouts/{emailHash}            ← pre-login (email/password attempts)
- *   users/{uid}/security/lockout    ← post-login (PIN, master password, fingerprint)
+ * Local lockout system — uses SharedPreferences instead of Firestore.
  *
  * Lockout durations:
- *   Sign-in password   : 5 wrong → 24h
  *   Master password    : 5 wrong → 24h
  *   App PIN            : 5 wrong → 24h
  *   Fingerprint        : 10 wrong → 24h
  */
 object LockoutManager {
 
-    private val db get() = FirebaseFirestore.getInstance()
+    private const val PREFS_NAME = "sv_lockout"
+    private const val MAX_PW_ATTEMPTS          = 5
+    private const val MAX_PIN_ATTEMPTS         = 5
+    private const val MAX_FINGERPRINT_ATTEMPTS = 10
+    const val LOCKOUT_DURATION_MS              = 24L * 60 * 60 * 1000  // 24 hours
 
-    const val MAX_PW_ATTEMPTS          = 5
-    const val MAX_PIN_ATTEMPTS         = 5
-    const val MAX_FINGERPRINT_ATTEMPTS = 10
-    const val LOCKOUT_DURATION_MS      = 24L * 60 * 60 * 1000  // 24 hours
-
-    enum class LockType { SIGN_IN, MASTER_PASSWORD, PIN, FINGERPRINT }
+    enum class LockType { MASTER_PASSWORD, PIN, FINGERPRINT }
 
     data class LockStatus(
         val isLocked: Boolean,
@@ -42,111 +34,84 @@ object LockoutManager {
         }
     }
 
-    // ── Pre-login lockout (email-based, no userId) ────────────────────────────
+    private fun prefs(ctx: Context): SharedPreferences =
+        ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    suspend fun checkSignInLock(email: String): LockStatus {
-        return checkLock(signInDocRef(email))
+    private fun key(accountId: String, type: LockType): String =
+        "lockout_${hashAccount(accountId)}_${type.name.lowercase()}"
+
+    private fun hashAccount(accountId: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256")
+            .digest(accountId.trim().toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }.take(20)
     }
 
-    suspend fun recordFailedSignIn(email: String): LockStatus {
-        return recordFailure(signInDocRef(email), MAX_PW_ATTEMPTS)
-    }
+    // ── Check lock status ────────────────────────────────────────────────────
 
-    suspend fun clearSignInLock(email: String) {
-        clearLock(signInDocRef(email))
-    }
+    fun checkLock(ctx: Context, accountId: String, type: LockType): LockStatus {
+        val p = prefs(ctx)
+        val k = key(accountId, type)
+        if (!p.contains("${k}_attempts")) return LockStatus(false, 0L, 0)
 
-    // ── Post-login lockout (userId-based) ─────────────────────────────────────
-
-    suspend fun checkLock(userId: String, type: LockType): LockStatus {
-        return checkLock(userLockDocRef(userId, type))
-    }
-
-    suspend fun recordFailure(userId: String, type: LockType): LockStatus {
-        val max = when (type) {
+        val attempts  = p.getInt("${k}_attempts", 0)
+        val lockedAt  = p.getLong("${k}_lockedAt", 0L)
+        val maxAttempts = when (type) {
             LockType.FINGERPRINT -> MAX_FINGERPRINT_ATTEMPTS
             else -> MAX_PW_ATTEMPTS
         }
-        return recordFailure(userLockDocRef(userId, type), max)
+
+        if (lockedAt == 0L || attempts < maxAttempts) {
+            return LockStatus(false, 0L, attempts)
+        }
+
+        val elapsed   = System.currentTimeMillis() - lockedAt
+        val remaining = LOCKOUT_DURATION_MS - elapsed
+
+        if (remaining <= 0) {
+            // Lockout expired — auto-clear
+            clearLock(ctx, accountId, type)
+            return LockStatus(false, 0L, 0)
+        }
+        return LockStatus(true, remaining, attempts)
     }
 
-    suspend fun clearLock(userId: String, type: LockType) {
-        clearLock(userLockDocRef(userId, type))
-    }
+    // ── Record failure ────────────────────────────────────────────────────────
 
-    // ── Core logic ────────────────────────────────────────────────────────────
+    fun recordFailure(ctx: Context, accountId: String, type: LockType): LockStatus {
+        val p = prefs(ctx)
+        val k = key(accountId, type)
+        val maxAttempts = when (type) {
+            LockType.FINGERPRINT -> MAX_FINGERPRINT_ATTEMPTS
+            else -> MAX_PW_ATTEMPTS
+        }
 
-    private suspend fun checkLock(docRef: com.google.firebase.firestore.DocumentReference): LockStatus {
-        return try {
-            val doc = docRef.get().await()
-            if (!doc.exists()) return LockStatus(false, 0L, 0)
+        val attempts = p.getInt("${k}_attempts", 0) + 1
+        val lockedAt = if (attempts >= maxAttempts) System.currentTimeMillis() else 0L
 
-            val attempts  = doc.getLong("attempts")?.toInt() ?: 0
-            val lockedAt  = doc.getLong("lockedAt") ?: 0L
-            val maxAttempts = doc.getLong("maxAttempts")?.toInt() ?: MAX_PW_ATTEMPTS
+        p.edit()
+            .putInt("${k}_attempts", attempts)
+            .putLong("${k}_lockedAt", lockedAt)
+            .putInt("${k}_max", maxAttempts)
+            .putLong("${k}_updatedAt", System.currentTimeMillis())
+            .apply()
 
-            if (lockedAt == 0L || attempts < maxAttempts) {
-                return LockStatus(false, 0L, attempts)
-            }
-
-            val elapsed   = System.currentTimeMillis() - lockedAt
-            val remaining = LOCKOUT_DURATION_MS - elapsed
-
-            if (remaining <= 0) {
-                // Lockout expired — auto-clear
-                clearLock(docRef)
-                LockStatus(false, 0L, 0)
-            } else {
-                LockStatus(true, remaining, attempts)
-            }
-        } catch (e: Exception) {
-            LockStatus(false) // Fail open — don't lock out on network error
+        return if (attempts >= maxAttempts) {
+            LockStatus(true, LOCKOUT_DURATION_MS, attempts)
+        } else {
+            LockStatus(false, 0L, attempts)
         }
     }
 
-    private suspend fun recordFailure(
-        docRef: com.google.firebase.firestore.DocumentReference,
-        maxAttempts: Int
-    ): LockStatus {
-        return try {
-            val doc      = docRef.get().await()
-            val attempts = (doc.getLong("attempts") ?: 0L).toInt() + 1
-            val lockedAt = if (attempts >= maxAttempts) System.currentTimeMillis() else 0L
+    // ── Clear lock ────────────────────────────────────────────────────────────
 
-            docRef.set(mapOf(
-                "attempts"    to attempts,
-                "lockedAt"    to lockedAt,
-                "maxAttempts" to maxAttempts,
-                "updatedAt"   to System.currentTimeMillis()
-            )).await()
-
-            if (attempts >= maxAttempts) {
-                LockStatus(true, LOCKOUT_DURATION_MS, attempts)
-            } else {
-                LockStatus(false, 0L, attempts)
-            }
-        } catch (e: Exception) {
-            LockStatus(false)
-        }
-    }
-
-    private suspend fun clearLock(docRef: com.google.firebase.firestore.DocumentReference) {
-        try { docRef.delete().await() } catch (_: Exception) {}
-    }
-
-    // ── Document references ───────────────────────────────────────────────────
-
-    private fun signInDocRef(email: String) =
-        db.collection("lockouts").document(hashEmail(email))
-
-    private fun userLockDocRef(userId: String, type: LockType) =
-        db.collection("users").document(userId)
-            .collection("security").document(type.name.lowercase())
-
-    private fun hashEmail(email: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256")
-            .digest(email.lowercase().trim().toByteArray())
-        return Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.URL_SAFE)
-            .replace("=", "").take(40)
+    fun clearLock(ctx: Context, accountId: String, type: LockType) {
+        val p = prefs(ctx)
+        val k = key(accountId, type)
+        p.edit()
+            .remove("${k}_attempts")
+            .remove("${k}_lockedAt")
+            .remove("${k}_max")
+            .remove("${k}_updatedAt")
+            .apply()
     }
 }

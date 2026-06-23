@@ -20,11 +20,10 @@ import com.mythronix.keysandpassword.R
 import com.mythronix.keysandpassword.VaultSession
 import com.mythronix.keysandpassword.crypto.CryptoManager
 import com.mythronix.keysandpassword.databinding.ActivityVaultBinding
-import com.mythronix.keysandpassword.firebase.AuthManager
-import com.mythronix.keysandpassword.firebase.FirestoreManager
 import com.mythronix.keysandpassword.models.PasswordPayload
 import com.mythronix.keysandpassword.models.TokenPayload
 import com.mythronix.keysandpassword.models.VaultItem
+import com.mythronix.keysandpassword.offline.OfflineVaultStore
 import com.mythronix.keysandpassword.ui.VaultAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -80,15 +79,19 @@ class VaultActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
+                val userId = VaultSession.getUserId() ?: run {
+                    binding.progressBar.visibility = View.GONE
+                    goToLock(); return@launch
+                }
                 allItems = withContext(Dispatchers.IO) {
-                    FirestoreManager.getVaultItems(AuthManager.currentUserId())
+                    OfflineVaultStore.listItems(this@VaultActivity, userId)
                 }
                 adapter.submitList(allItems)
                 updateEmptyState(allItems.isEmpty())
                 binding.chipCount.visibility = if (allItems.isNotEmpty()) View.VISIBLE else View.GONE
                 binding.chipCount.text = "${allItems.size} item${if (allItems.size != 1) "s" else ""}"
             } catch (e: Exception) {
-                showSnack("Could not load vault — check internet connection")
+                showSnack("Could not load vault: ${e.message}")
             } finally {
                 binding.progressBar.visibility = View.GONE
             }
@@ -104,7 +107,7 @@ class VaultActivity : AppCompatActivity() {
 
     private fun showItemDetail(item: VaultItem) {
         val key    = VaultSession.getKey() ?: run { goToLock(); return }
-        val userId = VaultSession.getUserId() ?: AuthManager.currentUserId()
+        val userId = VaultSession.getUserId() ?: run { goToLock(); return }
         try {
             val plainJson = CryptoManager.decrypt(item.encryptedData, item.iv, key, userId, item.id, item.type)
             if (item.type == VaultItem.TYPE_PASSWORD) showPasswordDetail(item, PasswordPayload.fromJson(plainJson))
@@ -174,12 +177,13 @@ class VaultActivity : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 lifecycleScope.launch {
                     try {
+                        val userId = VaultSession.getUserId() ?: return@launch
                         withContext(Dispatchers.IO) {
-                            FirestoreManager.deleteVaultItem(AuthManager.currentUserId(), item.id)
+                            OfflineVaultStore.deleteItem(this@VaultActivity, userId, item.id)
                         }
                         loadVaultItems()
                         showSnack("Entry deleted")
-                    } catch (_: Exception) { showSnack("Delete failed — check internet") }
+                    } catch (_: Exception) { showSnack("Delete failed") }
                 }
             }
             .setNegativeButton("Cancel", null).show()

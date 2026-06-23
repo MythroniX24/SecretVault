@@ -12,11 +12,10 @@ import com.google.android.material.snackbar.Snackbar
 import com.mythronix.keysandpassword.VaultSession
 import com.mythronix.keysandpassword.crypto.CryptoManager
 import com.mythronix.keysandpassword.databinding.ActivityAddEditBinding
-import com.mythronix.keysandpassword.firebase.AuthManager
-import com.mythronix.keysandpassword.firebase.FirestoreManager
 import com.mythronix.keysandpassword.models.PasswordPayload
 import com.mythronix.keysandpassword.models.TokenPayload
 import com.mythronix.keysandpassword.models.VaultItem
+import com.mythronix.keysandpassword.offline.OfflineVaultStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,9 +75,9 @@ class AddEditActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val key    = VaultSession.getKey() ?: run { goToLock(); return@launch }
-                val userId = VaultSession.getUserId() ?: AuthManager.currentUserId()
+                val userId = VaultSession.getUserId() ?: run { goToLock(); return@launch }
 
-                val items = withContext(Dispatchers.IO) { FirestoreManager.getVaultItems(userId) }
+                val items = withContext(Dispatchers.IO) { OfflineVaultStore.listItems(this@AddEditActivity, userId) }
                 val item  = items.find { it.id == itemId } ?: run { finish(); return@launch }
 
                 val plainJson = withContext(Dispatchers.Default) {
@@ -112,12 +111,10 @@ class AddEditActivity : AppCompatActivity() {
         val name  = binding.etName.text.toString().trim()
         if (name.isEmpty()) { snack("Name is required"); return }
         val key    = VaultSession.getKey() ?: run { goToLock(); return }
-        val userId = VaultSession.getUserId() ?: AuthManager.currentUserId()
+        val userId = VaultSession.getUserId() ?: run { goToLock(); return }
         val notes  = binding.etNotes.text.toString().trim()
 
-        val resolvedId = editItemId
-            ?: com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                .collection("users").document(userId).collection("vault").document().id
+        val resolvedId = editItemId ?: java.util.UUID.randomUUID().toString()
 
         val plainJson = if (currentType == VaultItem.TYPE_PASSWORD) {
             val pw = binding.etPassword.text.toString()
@@ -139,7 +136,7 @@ class AddEditActivity : AppCompatActivity() {
                 val item = VaultItem(id = resolvedId, type = currentType, name = name,
                     encryptedData = enc, iv = iv, aadVersion = VaultItem.AAD_VERSION)
 
-                withContext(Dispatchers.IO) { FirestoreManager.saveVaultItem(userId, item) }
+                withContext(Dispatchers.IO) { OfflineVaultStore.saveItem(this@AddEditActivity, userId, item) }
                 finish()
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE

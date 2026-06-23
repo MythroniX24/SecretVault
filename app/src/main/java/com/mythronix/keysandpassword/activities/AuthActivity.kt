@@ -14,7 +14,6 @@ import com.mythronix.keysandpassword.crypto.BreachCheckManager
 import com.mythronix.keysandpassword.crypto.PasswordStrengthUtil
 import com.mythronix.keysandpassword.databinding.ActivityAuthBinding
 import com.mythronix.keysandpassword.offline.OfflineAccountManager
-import com.mythronix.keysandpassword.offline.OfflineVaultStore
 import kotlinx.coroutines.launch
 
 class AuthActivity : AppCompatActivity() {
