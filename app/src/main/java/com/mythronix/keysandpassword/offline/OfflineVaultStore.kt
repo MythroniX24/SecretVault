@@ -111,6 +111,32 @@ object OfflineVaultStore {
         }
     }
 
+    // ── Export / Import ────────────────────────────────────────────────
+
+    /**
+     * Export all vault items for a user as a JSON string.
+     * Items are already individually encrypted — safe for export.
+     */
+    suspend fun exportItemsAsJson(ctx: Context, userId: String): String {
+        return withContext(Dispatchers.IO) {
+            val items = listItems(ctx, userId)
+            val arr = JSONArray()
+            items.forEach { item ->
+                val obj = JSONObject()
+                obj.put("id", item.id)
+                obj.put("type", item.type)
+                obj.put("name", item.name)
+                obj.put("encryptedData", item.encryptedData)
+                obj.put("iv", item.iv)
+                obj.put("hmac", item.hmac)
+                obj.put("aadVersion", item.aadVersion)
+                obj.put("createdAt", item.createdAt)
+                arr.put(obj)
+            }
+            arr.toString(2)
+        }
+    }
+
     private fun persistAllUsers(ctx: Context, userId: String, items: List<VaultItem>) {
         val f = vaultFile(ctx)
         val existing = if (f.exists()) {
