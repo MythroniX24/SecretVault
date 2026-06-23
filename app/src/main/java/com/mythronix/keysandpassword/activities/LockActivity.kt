@@ -271,24 +271,26 @@ class LockActivity : AppCompatActivity() {
             MaterialAlertDialogBuilder(this@LockActivity)
                 .setTitle("Enter App PIN").setView(til)
                 .setPositiveButton("Unlock") { _, _ ->
+                    // Use explicit label to avoid ambiguous return@launch
                     lifecycleScope.launch {
                         val pin = et.text.toString()
                         if (PinManager.isDuressPinEnabled(this@LockActivity) &&
                             PinManager.verifyDuressPin(this@LockActivity, pin)) {
                             VaultSession.clearAll()
                             startActivity(Intent(this@LockActivity, AuthActivity::class.java))
-                            finishAffinity(); return@launch
-                        }
-                        val mk = withContext(Dispatchers.Default) {
-                            PinManager.verifyPinAndGetKey(this@LockActivity, pin)
-                        }
-                        if (mk != null) {
-                            runCatching { LockoutManager.clearLock(this@LockActivity, accountId, LockoutManager.LockType.PIN) }
-                            VaultSession.setKey(mk, accountId); goToVault()
+                            finishAffinity()
                         } else {
-                            val st = runCatching { LockoutManager.recordFailure(this@LockActivity, accountId, LockoutManager.LockType.PIN) }.getOrNull()
-                            if (st?.isLocked == true) snack("⛔ PIN locked 24h")
-                            else snack("Incorrect PIN")
+                            val mk = withContext(Dispatchers.Default) {
+                                PinManager.verifyPinAndGetKey(this@LockActivity, pin)
+                            }
+                            if (mk != null) {
+                                runCatching { LockoutManager.clearLock(this@LockActivity, accountId, LockoutManager.LockType.PIN) }
+                                VaultSession.setKey(mk, accountId); goToVault()
+                            } else {
+                                val st = runCatching { LockoutManager.recordFailure(this@LockActivity, accountId, LockoutManager.LockType.PIN) }.getOrNull()
+                                if (st?.isLocked == true) snack("⛔ PIN locked 24h")
+                                else snack("Incorrect PIN")
+                            }
                         }
                     }
                 }.setNegativeButton("Cancel", null).show()

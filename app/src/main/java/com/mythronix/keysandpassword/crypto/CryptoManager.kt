@@ -134,7 +134,8 @@ object CryptoManager {
         return String(c.doFinal(ct), Charsets.UTF_8)
     }
 
-    // ── Overloads for backward compat ─────────────────────────────────────────
+    // ── Overload for callers that pass extra metadata (userId/itemId unused for encrypt) ──
+    @Suppress("UNUSED_PARAMETER")
     fun encrypt(p: String, k: SecretKey, userId: String, itemId: String, t: String) = encrypt(p, k)
 
     // ── Password Verifier ─────────────────────────────────────────────────────

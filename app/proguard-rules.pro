@@ -32,6 +32,12 @@
     public static ** valueOf(java.lang.String);
 }
 
+# Fix R8 missing classes from security-crypto Tink dependency
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.concurrent.GuardedBy
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn com.google.j2objc.annotations.**
+
 # Remove logging in release
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
