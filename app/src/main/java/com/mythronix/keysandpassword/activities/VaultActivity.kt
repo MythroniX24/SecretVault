@@ -38,6 +38,7 @@ class VaultActivity : AppCompatActivity() {
     private var allItems: List<VaultItem> = emptyList()
     private var selectedCategory: String? = null  // null = All
     private var clipboardHandler: Handler? = null
+    private var categoriesExpanded = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +52,7 @@ class VaultActivity : AppCompatActivity() {
         setupSearch()
         setupCategoryChips()
         loadVaultItems()
+        updateChipVisibility()
     }
 
     override fun onResume() {
@@ -109,6 +111,27 @@ class VaultActivity : AppCompatActivity() {
 
         // Single selection behavior
         binding.chipGroupCategories.isSingleSelection = true
+
+        // Filter toggle button — collapse resets to "All"
+        binding.btnFilter.setOnClickListener {
+            categoriesExpanded = !categoriesExpanded
+            if (!categoriesExpanded) {
+                selectedCategory = null
+                filterItems(binding.etSearch.text.toString())
+            }
+            updateChipVisibility()
+        }
+    }
+
+    private fun updateChipVisibility() {
+        val hasItems = allItems.isNotEmpty()
+        if (hasItems && categoriesExpanded) {
+            binding.chipGroupCategories.visibility = View.VISIBLE
+            binding.btnFilter.alpha = 1.0f
+        } else {
+            binding.chipGroupCategories.visibility = View.GONE
+            binding.btnFilter.alpha = if (hasItems) 0.5f else 0.3f
+        }
     }
 
     private fun filterItems(query: String) {
@@ -140,7 +163,7 @@ class VaultActivity : AppCompatActivity() {
                     OfflineVaultStore.listItems(this@VaultActivity, userId)
                 }
                 filterItems(binding.etSearch.text.toString())
-                if (allItems.isNotEmpty()) binding.chipGroupCategories.visibility = View.VISIBLE
+                updateChipVisibility()
                 binding.chipCount.visibility = if (allItems.isNotEmpty()) View.VISIBLE else View.GONE
                 binding.chipCount.text = "${allItems.size} item${if (allItems.size != 1) "s" else ""}"
             } catch (e: Exception) {
@@ -154,7 +177,8 @@ class VaultActivity : AppCompatActivity() {
     private fun updateEmptyState(empty: Boolean) {
         binding.tvEmpty.visibility = if (empty) View.VISIBLE else View.GONE
         binding.rvVault.visibility = if (empty) View.GONE else View.VISIBLE
-        binding.chipGroupCategories.visibility = if (empty) View.GONE else View.VISIBLE
+        // Don't hide chips when filter is empty — only hide when vault has no items
+        // Chip visibility is managed by updateChipVisibility()
     }
 
     // ── Favorite Toggle ───────────────────────────────────────────────────────
