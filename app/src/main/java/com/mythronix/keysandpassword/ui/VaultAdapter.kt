@@ -6,6 +6,7 @@ import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import com.mythronix.keysandpassword.R
 import com.mythronix.keysandpassword.databinding.ItemVaultBinding
 import com.mythronix.keysandpassword.models.VaultItem
@@ -58,8 +59,8 @@ class VaultAdapter(
                 ImageViewCompat.setImageTintList(binding.ivFavorite, null) // show gold color
             } else {
                 binding.ivFavorite.alpha = 0.25f
-                ImageViewCompat.setImageTintList(binding.ivFavorite, android.content.res.ColorStateList.valueOf(
-                    binding.root.context.getColor(com.google.android.material.R.attr.colorOnSurfaceVariant)))
+                val color = MaterialColors.getColor(binding.ivFavorite, com.google.android.material.R.attr.colorOnSurfaceVariant)
+                ImageViewCompat.setImageTintList(binding.ivFavorite, android.content.res.ColorStateList.valueOf(color))
             }
 
             binding.root.setOnClickListener { onItemClick(item) }
