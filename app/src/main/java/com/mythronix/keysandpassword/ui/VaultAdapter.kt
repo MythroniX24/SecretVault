@@ -26,11 +26,7 @@ class VaultAdapter(
 
     /** Sort: favorites first, then by createdAt descending */
     private fun getSortedItems(items: List<VaultItem>): List<VaultItem> {
-        return items.sortedByDescending { it.isFavorite }
-            .let { sorted ->
-                // Within each group, sort by createdAt
-                sorted.sortedWith(compareByDescending<VaultItem> { it.isFavorite }.thenByDescending { it.createdAt })
-            }
+        return items.sortedWith(compareByDescending<VaultItem> { it.isFavorite }.thenByDescending { it.createdAt })
     }
 
     inner class VaultViewHolder(private val binding: ItemVaultBinding) :
@@ -74,8 +70,13 @@ class VaultAdapter(
             ItemVaultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         )
 
-    override fun onBindViewHolder(holder: VaultViewHolder, position: Int) =
-        holder.bind(getItem(position))
+    override fun onBindViewHolder(holder: VaultViewHolder, position: Int) {
+        try {
+            holder.bind(getItem(position))
+        } catch (e: Exception) {
+            android.util.Log.e("VaultAdapter", "Bind error at $position", e)
+        }
+    }
 
     companion object {
         private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<VaultItem>() {
